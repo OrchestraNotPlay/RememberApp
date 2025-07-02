@@ -44,7 +44,7 @@ func main() {
 	app.Get("/api/getRemembers", getRemembers)
 	app.Post("/api/addRemember", addRemember)
 	app.Delete("/api/deleteRemember/:id", deleteRemember)
-	app.Get("/api/updateRemembers/:id", updateRemembers)
+	app.Patch("/api/updateRemember/:id", updateRemembers)
 
 	PORT := os.Getenv("PORT")
 	log.Fatal(app.Listen("0.0.0.0:" + PORT))
@@ -105,5 +105,26 @@ func deleteRemember(c *fiber.Ctx) error {
 }
 
 func updateRemembers(c *fiber.Ctx) error {
+	id := c.Params("id")
+	objectID, err := bson.ObjectIDFromHex(id)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	remember := new(Remember)
+
+	if err := c.BodyParser(remember); err != nil {
+		log.Fatal(err)
+	}
+
+	filter := bson.M{"_id": objectID}
+	update := bson.M{"$set": bson.M{"text": remember.Text, "date": remember.Date, "expiredtime": remember.ExpiredTime}}
+
+	_, err = collection.UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return c.Status(200).JSON(fiber.Map{"success": true})
 
 }
